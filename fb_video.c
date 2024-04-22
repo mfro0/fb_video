@@ -20,6 +20,7 @@
 #include "fb_video.h"
 #include "modeline.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <osbind.h>
 
 volatile uint32_t *fb_vd_clut = (volatile uint32_t *) 0xf0000000;
@@ -37,11 +38,11 @@ static struct res
     short height;
     short bpp;
     short freq;
-} resolution = {
-    640, 480, 16, 70
-    //1400, 1200, 16, 60
-    //1024, 768, 16, 70
-    // 1920, 1080, 16, 50
+} rs[] = {
+    { 640, 480, 16, 70 },
+    { 1400, 1200, 16, 60 },
+    { 1024, 768, 16, 70 },
+    { 1920, 1080, 16, 50 },
 };
 
 const Mode *graphics_mode;
@@ -170,7 +171,7 @@ void fbee_set_video(short *screen_address)
 }
 
 
-static long calc_modeline(struct res *res, struct modeline *ml)
+static void calc_modeline(struct res *res, struct modeline *ml)
 {
     /*
      * round down horizontal resolution to closest multiple of 8. Otherwise we get staircases
@@ -193,8 +194,6 @@ static long calc_modeline(struct res *res, struct modeline *ml)
     printf("vsync end: %d\r\n",  ml->v_sync_end);
     printf("vtotal: %d\r\n",  ml->v_total);
     printf("\r\n");
-
-    return 1;
 }
 
 void *screen_address;
@@ -217,10 +216,11 @@ static short *fbee_alloc_vram(short width, short height, short depth)
 }
 
 
-void video_init(void)
+void video_init(int r)
 {
 
-    screen_address = fbee_alloc_vram(resolution.width, resolution.height, sizeof(short));
+    screen_address = fbee_alloc_vram(rs[r].width,
+                                     rs[r].height, sizeof(short));
     fbee_set_video(screen_address + FB_VRAM_PHYS_OFFSET);
 
     fb_vd_clut[0] = 0x00000000;
@@ -228,8 +228,8 @@ void video_init(void)
     fb_vd_clut[2] = 0x0000ff00;
     fb_vd_clut[3] = 0x000000ff;
 
-    for (int i = 0; i < resolution.height; i++)
-        for (int j = 0; j < resolution.width; j += resolution.bpp / sizeof(short) / 8)
+    for (int i = 0; i < rs[r].height; i++)
+        for (int j = 0; j < rs[r].width; j += rs[r].bpp / sizeof(short) / 8)
             * (unsigned long *) (((long) screen_address + i + 480L * j)) = 0xffffffff;
 } 
 
@@ -244,9 +244,18 @@ void video_info(void)
  */
 int main(int argc, char *argv[])
 {
-    /*calc_modeline(&resolution, &modeline);
+    int r;
 
-    printf("%d x %d x %d@%d\r\n", modeline.h_display, modeline.v_display, resolution.bpp, modeline.pixel_clock + 1);
+    if (argc > 1) {
+        r = atoi(argv[1]);
+    } else {
+        fprintf(stderr, "usage: %s <res number (0 to %d)>\r\n", sizeof(rs) / sizeof(rs[0]));
+    }
+
+
+    /*calc_modeline(&rs[r], &modeline);
+
+    printf("%d x %d x %d@%d\r\n", modeline.h_display, modeline.v_display, rs[r].bpp, modeline.pixel_clock + 1);
     fflush(stdout);
     Supexec(video_init);
     */
