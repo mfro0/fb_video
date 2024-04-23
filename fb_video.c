@@ -206,8 +206,9 @@ static short *fbee_alloc_vram(short width, short height, short depth)
     return screen_address;
 }
 
+static int r;
 
-void video_init(int r)
+void video_init(void)
 {
     screen_address = fbee_alloc_vram(rs[r].width,
                                      rs[r].height, sizeof(short));
@@ -271,6 +272,7 @@ void video_info(void)
     printf("&hscroll is 0x%lx\r\n", &videl_regs->hscroll);
     printf("&spshift is 0x%lx\r\n", &videl_regs->spshift);
     printf("&HHC is 0x%lx\r\n", &videl_regs->hhc);
+    printf("&VCO is 0x%lx\r\n", &videl_regs->vco);
 } 
 
 
@@ -279,8 +281,6 @@ void video_info(void)
  */
 int main(int argc, char *argv[])
 {
-    int r;
-
     if (argc > 1) {
         r = atoi(argv[1]);
     } else {
