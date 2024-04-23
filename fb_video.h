@@ -150,6 +150,7 @@ enum fb_vd_vcntrl_fields
     VIDEO_DAC_ON = (1UL << 1),
     FB_VIDEO_ON = (1UL << 0)
 };
+const uint32_t COLMASK = (COLOR1 | COLOR8 | COLOR16 | COLOR24);
 
 enum fb_clockmode
 {
@@ -204,7 +205,7 @@ extern void *screen_address;
 extern struct blitter_registers blitter;
 extern struct falcon_busctrl busctrl;
 
-volatile uint32_t * const fb_vd_clut = (volatile uint32_t * const ) 0xf0000000;
+volatile uint8_t (* const fb_vd_clut)[4]  = (volatile uint32_t (* const)[4]) 0xf0000000;
 volatile uint32_t * const fb_vd_cntrl = (volatile uint32_t * const ) 0xf0000400;
 volatile uint32_t * const fb_vd_border = (uint32_t * const ) 0xf0000404;;
   

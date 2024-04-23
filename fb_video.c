@@ -30,10 +30,10 @@ static struct res
     short bpp;
     short freq;
 } rs[] = {
+    { 640, 480, 1, 70 },
+    { 640, 480, 8, 60 },
     { 640, 480, 16, 70 },
-    { 1400, 1200, 16, 60 },
-    { 1024, 768, 16, 70 },
-    { 1920, 1080, 16, 50 },
+    { 640, 480, 24, 50 },
 };
 
 const Mode *graphics_mode;
@@ -42,8 +42,21 @@ struct modeline modeline;
 static short set_bpp(short bpp)
 {
     switch (bpp) {
-        case -1:
+        case 1:
+            *fb_vd_cntrl &= ~COLMASK;
+            *fb_vd_cntrl |= COLOR1;
+            break;
         case 8:
+            *fb_vd_cntrl &= ~COLMASK;
+            *fb_vd_cntrl |= COLOR8;
+            break;
+        case 16:
+            *fb_vd_cntrl &= ~COLMASK;
+            *fb_vd_cntrl |= COLOR16;
+            break;
+        case 24:
+            *fb_vd_cntrl &= ~COLMASK;
+            *fb_vd_cntrl |= COLOR24;
             break;
         default:
             break;
@@ -60,7 +73,6 @@ static void fbee_set_clockmode(enum fb_clockmode mode)
         for (;;);
     }
 
-    *fb_vd_cntrl = (*fb_vd_cntrl & ~(FB_CLOCK_MASK)) | mode << 8;
     *fb_vd_cntrl = (*fb_vd_cntrl & ~(FB_CLOCK_MASK)) | mode << 8;
 }
 
@@ -122,7 +134,7 @@ void set_videl_regs_from_modeline(struct modeline *ml, volatile struct videl_reg
     vr->vss = ml->v_total - (ml->v_sync_end - ml->v_sync_start);
 }
 
-void fbee_set_video(short *screen_address)
+void fbee_set_video(enum fb_vd_vcntrl_fields col, short *screen_address)
 {
     fbee_set_screen(videl_regs, screen_address);
 
@@ -137,28 +149,23 @@ void fbee_set_video(short *screen_address)
      * and Falcon shift mode in exactly this sequence
      *
      * Don't write to one of these registers once you activated FireBee video as you'll
-     * be immediately set back to Atari video
+     * be set back to Atari video
      */
     videl_regs->stsft = 0;
     videl_regs->spshift = 0;
+    *fb_vd_cntrl &= ~(FALCON_SHIFT_MODE | ST_SHIFT_MODE | FB_VIDEO_ON | VIDEO_DAC_ON);
 
     /*
-     * write videl registers with the timing from the modeline
+     * write videl registers with the calculated timing from the modeline
      */
     set_videl_regs_from_modeline(&modeline, videl_regs);
 
-    /*
-     * enable 8-planes FireBee video mode and disable
-     * all other settings (the HDL doesn't do that, it's entirely possible to enable more
-     * than one single video mode which doesn't make sense, obviously)
-     */
-    *fb_vd_cntrl |= COLOR16 | NEG_SYNC_ALLOWED;
-    *fb_vd_cntrl &= ~(FALCON_SHIFT_MODE | ST_SHIFT_MODE | COLOR24 | COLOR8 | COLOR1);
+    set_bpp(col);
 
     /*
      * enable video again once all the settings are done
      */
-    *fb_vd_cntrl |= FB_VIDEO_ON | VIDEO_DAC_ON | COLOR16 | NEG_SYNC_ALLOWED;
+    *fb_vd_cntrl |= FB_VIDEO_ON | VIDEO_DAC_ON;
 }
 
 
@@ -174,17 +181,6 @@ static void calc_modeline(struct res *res, struct modeline *ml)
      * video timing (a modeline)
      */
     general_timing_formula(res->width, res->height, res->freq, 0.0, ml);
-
-    printf("pixel clock: %d\r\n",  ml->pixel_clock);
-    printf("hres: %d\r\n",  ml->h_display);
-    printf("hsync start: %d\r\n",  ml->h_sync_start);
-    printf("hsync end: %d\r\n",  ml->h_sync_end);
-    printf("htotal: %d\r\n",  ml->h_total);
-    printf("vres: %d\r\n",  ml->v_display);
-    printf("vsync start: %d\r\n",  ml->v_sync_start);
-    printf("vsync end: %d\r\n",  ml->v_sync_end);
-    printf("vtotal: %d\r\n",  ml->v_total);
-    printf("\r\n");
 }
 
 void *screen_address;
@@ -195,11 +191,13 @@ static short *fbee_alloc_vram(short width, short height, short depth)
 {
     void *buffer;
 
-    /* FireBee screen buffers live in ST RAM */
+    /* FireBee screen buffers live in ST RAM with BaS_gcc */
     buffer = (void *) Mxalloc((long) width * height * depth + 255, MX_STRAM);
     if (buffer == NULL)
-        printf("Mxalloc() failed to allocate screen buffer.");
-
+    {
+        fprintf(stderr, "Mxalloc() failed to allocate screen buffer.");
+        exit(1);
+    }
     screen_address = (void *) ((((uint32_t) buffer + 255UL) & ~255UL));
 
     printf("screen buffer allocated at 0x%lx\r\n", (long) buffer);
@@ -212,68 +210,15 @@ void video_init(void)
 {
     screen_address = fbee_alloc_vram(rs[r].width,
                                      rs[r].height, sizeof(short));
-    fbee_set_video(screen_address + FB_VRAM_PHYS_OFFSET);
+    fbee_set_video(rs[r].bpp, screen_address + FB_VRAM_PHYS_OFFSET);
 
-    fb_vd_clut[0] = 0x00000000;
-    fb_vd_clut[1] = 0x00ff0000;
-    fb_vd_clut[2] = 0x0000ff00;
-    fb_vd_clut[3] = 0x000000ff;
-
-    for (int i = 0; i < rs[r].height; i++)
-        for (int j = 0; j < rs[r].width; j += rs[r].bpp / sizeof(short) / 8)
-            * (unsigned long *) (((long) screen_address + i + 480L * j)) = 0xffffffff;
-} 
-
-void video_info(void)
-{
-    printf("fb_vd_ctrl = 0x%x\r\n", *fb_vd_cntrl);
-
-    printf(" Videl Registers\r\n");
-    printf("=================\r\n\r\n");
-    printf("video base med  0x%02x\r\n", videl_regs->vbasm);
-    printf("video count hi  0x%02x\r\n", videl_regs->vcnth);
-    printf("video count mid 0x%02x\r\n", videl_regs->vcntm);
-    printf("video count low 0x%02x\r\n", videl_regs->vcntl);
-    printf("ST sync mode    0x%02x\r\n", videl_regs->st_syncmode);
-    printf("video base low  0x%02x\r\n", videl_regs->vbasl);
-    printf("line width      0x%05x\r\n", videl_regs->nextl);
-    printf("vwrap           0x%03x\r\n", videl_regs->vwrap);
-    printf("ste colreg      0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\r\n",
-            videl_regs->ste_col[0], videl_regs->ste_col[1], videl_regs->ste_col[2], videl_regs->ste_col[3],
-            videl_regs->ste_col[4], videl_regs->ste_col[5], videl_regs->ste_col[6], videl_regs->ste_col[7]);
-    printf("                0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\r\n",
-            videl_regs->ste_col[8], videl_regs->ste_col[9], videl_regs->ste_col[10], videl_regs->ste_col[11],
-            videl_regs->ste_col[12], videl_regs->ste_col[13], videl_regs->ste_col[14], videl_regs->ste_col[15]);
-    printf("ST shift mode   0x%04x\r\n", videl_regs->stsft);
-    printf("SP shift mode   0x%04x\r\n", videl_regs->spshift);
-    printf("HHC             0x%04x\r\n", videl_regs->hhc);
-    printf("HHT             0x%04x\r\n", videl_regs->hht);
-    printf("HBB             0x%04x\r\n", videl_regs->hbb);
-    printf("HBE             0x%04x\r\n", videl_regs->hbe);
-    printf("HDB             0x%04x\r\n", videl_regs->hdb);
-    printf("HDE             0x%04x\r\n", videl_regs->hde);
-    printf("HSS             0x%04x\r\n", videl_regs->hss);
-    printf("HFS             0x%04x\r\n", videl_regs->hfs);
-    printf("HEE             0x%04x\r\n", videl_regs->hee);
-    printf("VBT             0x%04x\r\n", videl_regs->vbt);
-    printf("VFC             0x%04x\r\n", videl_regs->vfc);
-    printf("VFT             0x%04x\r\n", videl_regs->vft);
-    printf("VBB             0x%04x\r\n", videl_regs->vbb);
-    printf("VBE             0x%04x\r\n", videl_regs->vbe);
-    printf("VDB             0x%04x\r\n", videl_regs->vdb);
-    printf("VDE             0x%04x\r\n", videl_regs->vde);
-    printf("VSS             0x%04x\r\n", videl_regs->vclk);
-    printf("VCO             0x%04x\r\n", videl_regs->vco);
-
-    printf("sizeof struct videl_registers = %ld\r\n", sizeof(struct videl_registers));
-    printf("&next is 0x%lx\r\n", &videl_regs->nextl);
-    printf("&ste_col is 0x%lx\r\n", &videl_regs->ste_col[0]);
-    printf("&stsft is 0x%lx\r\n", &videl_regs->stsft);
-    printf("&hscroll is 0x%lx\r\n", &videl_regs->hscroll);
-    printf("&spshift is 0x%lx\r\n", &videl_regs->spshift);
-    printf("&HHC is 0x%lx\r\n", &videl_regs->hhc);
-    printf("&VCO is 0x%lx\r\n", &videl_regs->vco);
-} 
+    /* set CLUT (unsigned char RGB[255][4]) */
+    for (int col = 0; col < 256; col ++)
+    {
+        printf("&fb_vd_clut[%d][0] = 0x%lx\r\n", col, &fb_vd_clut[col][0]);
+        fb_vd_clut[col][1] = 0xff; fb_vd_clut[col][2] = 0x0; fb_vd_clut[col][3] = 0x0;
+    }
+}
 
 
 /*
@@ -294,7 +239,6 @@ int main(int argc, char *argv[])
     printf("%d x %d x %d@%d\r\n", modeline.h_display, modeline.v_display, rs[r].bpp, modeline.pixel_clock + 1);
     fflush(stdout);
     Supexec(video_init);
-    Supexec(video_info);
 
     return 0;
 }
