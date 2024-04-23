@@ -23,15 +23,6 @@
 #include <stdlib.h>
 #include <osbind.h>
 
-volatile uint32_t *fb_vd_clut = (volatile uint32_t *) 0xf0000000;
-volatile uint32_t *fb_vd_cntrl = (volatile uint32_t *) 0xf0000400;
-volatile uint32_t *fb_vd_border = (uint32_t *) 0xf0000404;;
-
-volatile uint16_t *fb_vd_pll_config = (volatile uint16_t *) 0xf0000600;
-volatile int16_t *fb_vd_pll_reconfig = (volatile int16_t *) 0xf0000800 ;
-volatile uint16_t *fb_vd_frq = (volatile uint16_t *) 0xf0000604;
-volatile struct videl_registers *videl_regs = (volatile struct videl_registers *) 0xffff8200;
-
 static struct res
 {
     short width;
@@ -218,7 +209,6 @@ static short *fbee_alloc_vram(short width, short height, short depth)
 
 void video_init(int r)
 {
-
     screen_address = fbee_alloc_vram(rs[r].width,
                                      rs[r].height, sizeof(short));
     fbee_set_video(screen_address + FB_VRAM_PHYS_OFFSET);
@@ -236,6 +226,44 @@ void video_init(int r)
 void video_info(void)
 {
     printf("fb_vd_ctrl = 0x%x\r\n", *fb_vd_cntrl);
+
+    printf(" Videl Registers\r\n");
+    printf("=================\r\n\r\n");
+    printf("video base med  0x%02x\r\n", videl_regs->vbasm);
+    printf("video count hi  0x%02x\r\n", videl_regs->vcnth);
+    printf("video count mid 0x%02x\r\n", videl_regs->vcntm);
+    printf("video count low 0x%02x\r\n", videl_regs->vcntl);
+    printf("ST sync mode    0x%02x\r\n", videl_regs->st_syncmode);
+    printf("video base low  0x%02x\r\n", videl_regs->vbasl);
+    printf("line width      0x%05x\r\n", videl_regs->nextl);
+    printf("vwrap           0x%03x\r\n", videl_regs->vwrap);
+    printf("ste colreg      0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\r\n",
+            videl_regs->ste_col[0], videl_regs->ste_col[1], videl_regs->ste_col[2], videl_regs->ste_col[3],
+            videl_regs->ste_col[4], videl_regs->ste_col[5], videl_regs->ste_col[6], videl_regs->ste_col[7]);
+    printf("                0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\r\n",
+            videl_regs->ste_col[8], videl_regs->ste_col[9], videl_regs->ste_col[10], videl_regs->ste_col[11],
+            videl_regs->ste_col[12], videl_regs->ste_col[13], videl_regs->ste_col[14], videl_regs->ste_col[15]);
+    printf("ST shift mode   0x%04x\r\n", videl_regs->stsft);
+    printf("TT shift mode   0x%04x\r\n", videl_regs->ttsft);
+    printf("SP shift mode   0x%04x\r\n", videl_regs->spshift);
+    printf("HHC             0x%04x\r\n", videl_regs->hhc);
+    printf("HHT             0x%04x\r\n", videl_regs->hht);
+    printf("HBB             0x%04x\r\n", videl_regs->hbb);
+    printf("HBE             0x%04x\r\n", videl_regs->hbe);
+    printf("HDB             0x%04x\r\n", videl_regs->hdb);
+    printf("HDE             0x%04x\r\n", videl_regs->hde);
+    printf("HSS             0x%04x\r\n", videl_regs->hss);
+    printf("HFS             0x%04x\r\n", videl_regs->hfs);
+    printf("HEE             0x%04x\r\n", videl_regs->hee);
+    printf("VBT             0x%04x\r\n", videl_regs->vbt);
+    printf("VFC             0x%04x\r\n", videl_regs->vfc);
+    printf("VFT             0x%04x\r\n", videl_regs->vft);
+    printf("VBB             0x%04x\r\n", videl_regs->vbb);
+    printf("VBE             0x%04x\r\n", videl_regs->vbe);
+    printf("VDB             0x%04x\r\n", videl_regs->vdb);
+    printf("VDE             0x%04x\r\n", videl_regs->vde);
+    printf("VSS             0x%04x\r\n", videl_regs->vclk);
+    printf("VCO             0x%04x\r\n", videl_regs->vco);
 }
 
 
@@ -250,6 +278,7 @@ int main(int argc, char *argv[])
         r = atoi(argv[1]);
     } else {
         fprintf(stderr, "usage: %s <res number (0 to %d)>\r\n", sizeof(rs) / sizeof(rs[0]));
+        exit(1);
     }
 
 
@@ -257,7 +286,7 @@ int main(int argc, char *argv[])
 
     printf("%d x %d x %d@%d\r\n", modeline.h_display, modeline.v_display, rs[r].bpp, modeline.pixel_clock + 1);
     fflush(stdout);
-    Supexec(video_init);
+    Supexec(video_init(r));
     */
     Supexec(video_info);
 

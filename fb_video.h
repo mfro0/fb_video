@@ -205,5 +205,15 @@ extern void *screen_address;
 extern struct blitter_registers blitter;
 extern struct falcon_busctrl busctrl;
 
+volatile uint32_t * const fb_vd_clut = (volatile uint32_t * const ) 0xf0000000;
+volatile uint32_t * const fb_vd_cntrl = (volatile uint32_t * const ) 0xf0000400;
+volatile uint32_t * const fb_vd_border = (uint32_t * const ) 0xf0000404;;
+  
+volatile uint16_t * const fb_vd_pll_config = (volatile uint16_t * const ) 0xf0000600;
+volatile int16_t * const fb_vd_pll_reconfig = (volatile int16_t * const ) 0xf0000800 ;
+volatile uint16_t * const fb_vd_frq = (volatile uint16_t * const ) 0xf0000604;
+volatile struct videl_registers * const videl_regs = (volatile struct videl_registers * const ) 0xffff8200;
+
+
 #endif /* FB_VIDEO_H */
 
