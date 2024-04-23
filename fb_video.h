@@ -100,9 +100,8 @@ struct videl_registers
     uint16_t rsv8[23];    /* 0xffff8212 - 0xffff823e unused */
     uint16_t ste_col[16]; /* STE 4 plane mode clut 0xffff8240 - 0xffff825f */
     uint8_t stsft;        /* ST shift mode register - 0xffff8260 */
-    uint8_t ttsft;        /* TT shifter resolution - 0xffff8262 */
-    uint8_t rsv9;         /* 0xffff8263 */
-    uint16_t rsv10;       /* 0xffff8264 - 0xffff8265 */
+    uint8_t rsv9[4];
+    uint8_t hscroll;      /* 0xffff8265 */
     uint16_t spshift;     /* SPSHIFT 0xffff8266 */
     uint16_t rsv11[12];   /* 0xffff8268 - 0xffff827e */
     uint16_t hhc;         /* horizontal half line counter - 0xffff8280 */

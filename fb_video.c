@@ -244,7 +244,6 @@ void video_info(void)
             videl_regs->ste_col[8], videl_regs->ste_col[9], videl_regs->ste_col[10], videl_regs->ste_col[11],
             videl_regs->ste_col[12], videl_regs->ste_col[13], videl_regs->ste_col[14], videl_regs->ste_col[15]);
     printf("ST shift mode   0x%04x\r\n", videl_regs->stsft);
-    printf("TT shift mode   0x%04x\r\n", videl_regs->ttsft);
     printf("SP shift mode   0x%04x\r\n", videl_regs->spshift);
     printf("HHC             0x%04x\r\n", videl_regs->hhc);
     printf("HHT             0x%04x\r\n", videl_regs->hht);
@@ -264,7 +263,15 @@ void video_info(void)
     printf("VDE             0x%04x\r\n", videl_regs->vde);
     printf("VSS             0x%04x\r\n", videl_regs->vclk);
     printf("VCO             0x%04x\r\n", videl_regs->vco);
-}
+
+    printf("sizeof struct videl_registers = %ld\r\n", sizeof(struct videl_registers));
+    printf("&next is 0x%lx\r\n", &videl_regs->nextl);
+    printf("&ste_col is 0x%lx\r\n", &videl_regs->ste_col[0]);
+    printf("&stsft is 0x%lx\r\n", &videl_regs->stsft);
+    printf("&hscroll is 0x%lx\r\n", &videl_regs->hscroll);
+    printf("&spshift is 0x%lx\r\n", &videl_regs->spshift);
+    printf("&HHC is 0x%lx\r\n", &videl_regs->hhc);
+} 
 
 
 /*
@@ -282,12 +289,11 @@ int main(int argc, char *argv[])
     }
 
 
-    /*calc_modeline(&rs[r], &modeline);
+    calc_modeline(&rs[r], &modeline);
 
     printf("%d x %d x %d@%d\r\n", modeline.h_display, modeline.v_display, rs[r].bpp, modeline.pixel_clock + 1);
     fflush(stdout);
-    Supexec(video_init(r));
-    */
+    Supexec(video_init);
     Supexec(video_info);
 
     return 0;
