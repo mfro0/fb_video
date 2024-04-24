@@ -3,12 +3,10 @@ PREFIX=m68k-atari-mintelf-
 CC=$(PREFIX)gcc
 LD=$(PREFIX)ld
 
-#LINKER_DEFS=-Wl,--defsym,VRAM=0x60000000,--defsym,videl_regs=0xffff8200,--defsym,fb_vd_clut=0xf0000000,--defsym,fb_vd_cntrl=0xf0000400,--defsym,fb_vd_border=0xf0000404,--defsym,fb_vd_pll_config=0xf0000600,--defsym,fb_vd_frq=0xf0000604,--defsym,fb_vd_pll_reconfig=0xf0000800
-
 SRCS=fb_video.c \
      modeline.c
 
-CFLAGS+=-mcpu=547x -ffunction-sections -fdata-sections
+CFLAGS+=-mcpu=547x -ffunction-sections -fdata-sections -Wall
 
 OBJS=$(SRCS:.c=.o)
 

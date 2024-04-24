@@ -205,7 +205,7 @@ extern void *screen_address;
 extern struct blitter_registers blitter;
 extern struct falcon_busctrl busctrl;
 
-volatile uint8_t (* const fb_vd_clut)[4]  = (volatile uint32_t (* const)[4]) 0xf0000000;
+volatile uint8_t (* const fb_vd_clut)[4]  = (volatile uint8_t (* const)[4]) 0xf0000000;
 volatile uint32_t * const fb_vd_cntrl = (volatile uint32_t * const ) 0xf0000400;
 volatile uint32_t * const fb_vd_border = (uint32_t * const ) 0xf0000404;;
   

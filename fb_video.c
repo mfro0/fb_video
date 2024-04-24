@@ -30,6 +30,7 @@ static struct res
     short bpp;
     short freq;
 } rs[] = {
+    { 320, 240, 8, 130 },
     { 640, 480, 1, 70 },
     { 640, 480, 8, 60 },
     { 640, 480, 16, 70 },
@@ -215,9 +216,13 @@ void video_init(void)
     /* set CLUT (unsigned char RGB[255][4]) */
     for (int col = 0; col < 256; col ++)
     {
-        printf("&fb_vd_clut[%d][0] = 0x%lx\r\n", col, &fb_vd_clut[col][0]);
-        fb_vd_clut[col][1] = 0xff; fb_vd_clut[col][2] = 0x0; fb_vd_clut[col][3] = 0x0;
+        fb_vd_clut[col][1] = 0xff; fb_vd_clut[col][2] = col; fb_vd_clut[col][3] = 0x0;
     }
+    /*
+    for (int i = 0; i < rs[r].height; i++)
+        for (int j = 0; j < rs[r].width; j++)
+            ((char **) screen_address) [i][j] = rand() * 255 / RAND_MAX;
+    */
 }
 
 
@@ -229,7 +234,7 @@ int main(int argc, char *argv[])
     if (argc > 1) {
         r = atoi(argv[1]);
     } else {
-        fprintf(stderr, "usage: %s <res number (0 to %d)>\r\n", sizeof(rs) / sizeof(rs[0]));
+        fprintf(stderr, "usage: %s <res number (0 to %ld)>\r\n", argv[0], sizeof(rs) / sizeof(rs[0]));
         exit(1);
     }
 
